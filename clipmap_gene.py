@@ -33,19 +33,34 @@ def clipMapRanges(gene_range,clipdict):
     return gene_range + [clipped_dict]
 
 #grabs shape data for a stitched transcript.  takes output of clipMap
-def clipMerge(clipped_gene,shape_list):
-    for shape in shape_list:
-        if shape[0] == clipped_gene[0]:
-            shapevals=shape[3:]
-            if len(shapevals) != clipped_gene[4]-clipped_gene[3]+1:
-                sys.stderr.write('ERROR:  length mismatch in %s. Pos: %s Shape: %s.\n' % (shape[0],clipped_gene[4]-clipped_gene[3],len(shapevals)))
-                return 'FAIL'
-            else:
-                if clipped_gene[2] == '+':
-                    return clipped_gene + [shapevals]
-                elif clipped_gene[2] == '-':
-                    return clipped_gene + [shapevals[::-1]]
-            break
+#def clipMerge(clipped_gene,shape_list):
+#    for shape in shape_list:
+#        if shape[0] == clipped_gene[0]:
+#            shapevals=shape[3:]
+#            if len(shapevals) != clipped_gene[4]-clipped_gene[3]+1:
+#                sys.stderr.write('ERROR:  length mismatch in %s. Pos: %s Shape: %s.\n' % (shape[0],clipped_gene[4]-clipped_gene[3],len(shapevals)))
+#                return 'FAIL'
+#            else:
+#                if clipped_gene[2] == '+':
+#                    return clipped_gene + [shapevals]
+#                elif clipped_gene[2] == '-':
+#                    return clipped_gene + [shapevals[::-1]]
+#            break
+
+def clipMerge(clipped_gene,shape_data):
+    try:
+        shapevals=shape_data[clipped_gene[0]]
+    except KeyError:
+        sys.stderr.write('ERROR:  no shape data for %s. Pos: %s Shape: %s.\n' % (clipped_gene[0],clipped_gene[4]-clipped_gene[3],len(shapevals)))
+        return 'FAIL'
+    if len(shapevals) != clipped_gene[4]-clipped_gene[3]+1:
+        sys.stderr.write('ERROR:  length mismatch in %s. Pos: %s Shape: %s.\n' % (shape[0],clipped_gene[4]-clipped_gene[3],len(shapevals)))
+        return 'FAIL'
+    else:
+        if clipped_gene[2] == '+':
+            return clipped_gene + [shapevals]
+        elif clipped_gene[2] == '-':
+            return clipped_gene + [shapevals[::-1]]
 
 #final merge
 def mergeAll(shaped_gene):
@@ -97,10 +112,16 @@ with open(clipfile) as infile:
 
 #import shape data
 sys.stderr.write('INFO: importing SHAPE data...\n')
-shape_data=[]
+#shape_data=[]
+#with open(shapefile) as infile:
+#    for line in infile:
+#        shape_data.append(line.strip().split('\t'))
+
+shape_data={}
 with open(shapefile) as infile:
     for line in infile:
-        shape_data.append(line.strip().split('\t'))
+        shapetmp=line.strip().split('\t')
+        shape_data[shapetmp[0]]=shapetmp[3:]
 
 ############################################
 
@@ -111,7 +132,9 @@ f1=open(ranges_outname,'w')
 clip_outname = "%s.clipmap_gene" % outprefix
 f2=open(clip_outname,'w')
 
-id_list=[x[0] for x in shape_data]
+#id_list=[x[0] for x in shape_data]
+id_list=shape_data.keys()
+
 sys.stderr.write('INFO: Processing genes...\n')
 genct=0
 for id in id_list:
